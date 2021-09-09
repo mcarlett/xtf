@@ -1,6 +1,7 @@
 package cz.xtf.git;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import org.assertj.core.api.Fail;
 import org.gitlab.api.GitlabAPI;
@@ -43,7 +44,9 @@ public class GitLabUtil {
 
 	public GitLabUtil() {
 		try {
-			if (TestConfiguration.dynamicGitLab()) {
+			if (StringUtils.isNotBlank(TestConfiguration.gitLabURL())
+					&& StringUtils.isNotBlank(TestConfiguration.gitLabUsername())
+					&& StringUtils.isNotBlank(TestConfiguration.gitLabPassword())) {
 				api = GitlabAPI.connect(
 						TestConfiguration.gitLabURL(),
 						GitlabAPI.connect(TestConfiguration.gitLabURL(),
@@ -101,7 +104,7 @@ public class GitLabUtil {
 
 	public GitProject createAndInitGitLabProject() {
 		GitProject project;
-		if (TestConfiguration.dynamicGitLab()) {
+		if (StringUtils.isNotBlank(TestConfiguration.gitLabUsername()) && StringUtils.isNotBlank(TestConfiguration.gitLabPassword())) {
 			project = GitUtil.initRepository(gitRepoLocalPath, gitRepoHttpUrl,
 					TestConfiguration.gitLabUsername(),
 					TestConfiguration.gitLabPassword());
