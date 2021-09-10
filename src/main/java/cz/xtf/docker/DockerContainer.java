@@ -19,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cz.xtf.TestConfiguration;
+import cz.xtf.XTFConfiguration;
+import cz.xtf.openshift.OpenShiftBinaryClient;
 import cz.xtf.openshift.OpenshiftUtil;
 
 import io.fabric8.kubernetes.api.model.NodeAddress;
@@ -74,6 +76,11 @@ public class DockerContainer {
 			Optional<NodeAddress> nodeAddress = admin().client().nodes().withName(host).get().getStatus().getAddresses().stream().filter(addr -> "ExternalIP".equals(addr.getType())).findFirst();
 			if (nodeAddress.isPresent()) {
 				host = nodeAddress.get().getAddress();
+			} else {
+				OpenShiftBinaryClient cli = OpenShiftBinaryClient.getInstance();
+				String out = cli.executeCommandWithReturn("error","exec", pod.getMetadata().getName(), "getent", "hosts", host, "-n", XTFConfiguration.buildNamespace());
+				final String[] outCommandTokens = out.replace("\n", "").split(" ");
+				host = outCommandTokens[outCommandTokens.length - 1].trim();
 			}
 		}
 
