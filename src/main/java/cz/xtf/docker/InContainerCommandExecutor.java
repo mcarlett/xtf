@@ -1,8 +1,11 @@
 package cz.xtf.docker;
 
+import cz.xtf.XTFConfiguration;
+import cz.xtf.openshift.OpenShiftBinaryClient;
 import io.fabric8.kubernetes.api.model.Pod;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -11,6 +14,8 @@ import java.util.stream.Stream;
 
 public class InContainerCommandExecutor {
 	private DockerContainer dockerContainer;
+	private Pod pod;
+	private OpenShiftBinaryClient client;
 
 	/**
 	 * Creates instance connected to specified pod.
@@ -24,6 +29,8 @@ public class InContainerCommandExecutor {
 
 	private InContainerCommandExecutor(Pod pod) {
 		dockerContainer = DockerContainer.createForPod(pod);
+		this.pod = pod;
+		this.client = OpenShiftBinaryClient.getInstance();
 	}
 
 	/**
@@ -84,7 +91,11 @@ public class InContainerCommandExecutor {
 	 * @return whatever is the result
 	 */
 	public String executeCommand(String command) {
-		return dockerContainer.dockerCmd(containerID -> String.format("docker exec %s %s", containerID, command));
+		final String errorMsg = "error on running command on pod " + pod.getMetadata().getName();
+		final List<String> args = new ArrayList<>();
+		args.addAll(Arrays.asList("exec", "-n", XTFConfiguration.buildNamespace(), pod.getMetadata().getName(), "--"));
+		args.addAll(Arrays.asList(command.split(" ")));
+		return this.client.executeCommandWithReturn(errorMsg, args.toArray(new String[]{}));
 	}
 
 	/**
