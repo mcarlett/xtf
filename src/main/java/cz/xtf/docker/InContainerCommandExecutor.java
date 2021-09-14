@@ -31,6 +31,7 @@ public class InContainerCommandExecutor {
 		dockerContainer = DockerContainer.createForPod(pod);
 		this.pod = pod;
 		this.client = OpenShiftBinaryClient.getInstance();
+		this.client.project(XTFConfiguration.buildNamespace());
 	}
 
 	/**
@@ -80,8 +81,13 @@ public class InContainerCommandExecutor {
 	 * @return whatever the result is
 	 */
 	public String executeBashCommand(String command) {
-		String cmd = String.format("bash -c \"%s\"", command);
-		return executeCommand(cmd);
+		//String cmd = String.format("bash -c \"%s\"", command);
+		//return executeCommand(cmd);
+		return executeCommand(command, false);
+	}
+
+	public String executeCommand(String command) {
+		return this.executeCommand(command, false);
 	}
 
 	/**
@@ -90,12 +96,17 @@ public class InContainerCommandExecutor {
 	 * @param command to be executed
 	 * @return whatever is the result
 	 */
-	public String executeCommand(String command) {
+	public String executeCommand(String command, final boolean readError) {
 		final String errorMsg = "error on running command on pod " + pod.getMetadata().getName();
 		final List<String> args = new ArrayList<>();
-		args.addAll(Arrays.asList("exec", "-n", XTFConfiguration.buildNamespace(), pod.getMetadata().getName(), "--"));
-		args.addAll(Arrays.asList(command.split(" ")));
-		return this.client.executeCommandWithReturn(errorMsg, args.toArray(new String[]{}));
+		args.addAll(Arrays.asList("exec", pod.getMetadata().getName(), "--"));
+		if(command.contains("|")) {
+			args.add(command);
+		} else {
+			args.addAll(Arrays.asList(command.split(" ")));
+		}
+
+		return this.client.executeCommandWithReturn(readError, errorMsg, args.toArray(new String[]{}));
 	}
 
 	/**
@@ -106,8 +117,13 @@ public class InContainerCommandExecutor {
 	 * @return output parsed by new lines
 	 */
 	public List<String> executeBashCommandAndExpectList(String command) {
-		String cmd = String.format("bash -c \"%s\"", command);
-		return executeCommandAndExpectList(cmd);
+		//String cmd = String.format("bash -c \"%s\"", command);
+		//return executeCommandAndExpectList(cmd);
+		return executeCommandAndExpectList(false, command);
+	}
+
+	public List<String> executeCommandAndExpectList(String command) {
+		return executeCommandAndExpectList(false, command);
 	}
 
 	/**
@@ -116,8 +132,8 @@ public class InContainerCommandExecutor {
 	 * @param command that will be executed
 	 * @return output parsed by new lines
 	 */
-	public List<String> executeCommandAndExpectList(String command) {
-		String[] result = StringUtils.split(executeCommand(command), '\n');
+	public List<String> executeCommandAndExpectList(final boolean readError, String command) {
+		String[] result = StringUtils.split(executeCommand(command, readError), '\n');
 		return Arrays.asList(result);
 	}
 }

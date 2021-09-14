@@ -93,20 +93,27 @@ public class OpenShiftBinaryClient {
 		}
 	}
 
+	public String executeCommandWithReturn(final String error, String... args) {
+		return this.executeCommandWithReturn(false, error, args);
+	}
+
 	/**
 	 * Executes oc command and returns a String
 	 *
 	 * @param args command arguments
 	 * @return Process encapsulating started oc
 	 */
-	public String executeCommandWithReturn(final String error, String... args) {
+	public String executeCommandWithReturn(final boolean readError, final String error, String... args) {
 		String[] ocArgs = (String[]) ArrayUtils.addAll(new String[] {ocBinaryPath, "--config=" + CONFIG_FILE.getAbsolutePath()}, args);
 		try {
-			final Process process = executeLocalCommand(error, false, true, false,
+			final Process process = executeLocalCommand(error, false, true, readError,
 					ocArgs);
 			try (final InputStream is = process.getInputStream();
 					final StringWriter sw = new StringWriter()) {
 				org.apache.commons.io.IOUtils.copy(is, sw);
+				if (readError && sw.toString().equals("")) {
+					org.apache.commons.io.IOUtils.copy(process.getErrorStream(), sw);
+				}
 				return sw.toString();
 			}
 		} catch (IOException | InterruptedException ex) {
