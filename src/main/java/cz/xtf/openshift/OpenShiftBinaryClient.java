@@ -211,9 +211,15 @@ public class OpenShiftBinaryClient {
 		int code = -1;
 		try {
 			code = HttpClient.get(clientLocation).code();
+			if (code != 200) {
+				//retry with -1 suffix in the version
+				clientLocation = String.format(CLIENTS_URL + "%s-1/%s/", openShiftVersion, systemType);
+				code = HttpClient.get(clientLocation).code();
+			}
 		} catch (IOException e) {
 			log.warn("Failed to retrieve code from binary clients mirror. Falling back to {}.", TestConfiguration.ocBinaryLocation());
 		}
+		log.info("downloading oc from {}: {}", clientLocation, code);
 
 		// Fall back to default oc if version is not found
 		if(code != 200) {
@@ -235,6 +241,7 @@ public class OpenShiftBinaryClient {
 		File ocFile = new File(WORKDIR, "oc");
 
 		URL requestUrl = new URL(clientLocation + "oc.tar.gz");
+		log.info("downloading {}", requestUrl);
 		FileUtils.copyURLToFile(requestUrl, ocTarFile, 20_000, 300_000);
 
 		executeLocalCommand("Error trying to extract client", "tar", "-xf", ocTarFile.getPath(), "-C", WORKDIR.getPath());
