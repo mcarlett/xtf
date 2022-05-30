@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import cz.xtf.core.image.Image;
 import cz.xtf.core.openshift.OpenShift;
+import cz.xtf.core.openshift.OpenShiftWaiters;
 import cz.xtf.core.waiting.SimpleWaiter;
 import cz.xtf.core.waiting.Waiter;
 import cz.xtf.core.waiting.failfast.FailFastCheck;
@@ -74,6 +75,12 @@ public class DockerImageMetadata {
         DockerImageMetadata metadataFromTag = getMetadataFromTag(imageStreamTag);
         if (metadataFromTag != null) {
             return metadataFromTag;
+        }
+
+        //create namespace if not exists
+        if (openShift.getProject(openShift.getNamespace()) == null) {
+            openShift.createProjectRequest();
+            OpenShiftWaiters.get(openShift, () -> false).isProjectReady().waitFor();
         }
 
         // create new one of unique name
